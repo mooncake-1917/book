@@ -1,0 +1,65 @@
+/* 目录树样式 */
+ul#tree {
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+    width: 125%;
+    z-index: 3;
+    box-shadow: 1px 0 3px 0 #000a;
+    border-radius: 0 1rem 1rem 0;
+    list-style: none;
+    background-color: #96858f;
+    overflow: hidden;
+    transition: all .5s;
+}
+
+ul#tree li {
+    padding-left: 1rem;
+    background-color: #0000;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 20px;
+    transition: all .5s;
+    cursor: pointer;
+}
+
+ul#tree li:hover {
+    background-color: #fff8;
+    color: #000c;
+    font-size: 24px;
+}
+
+ul#tree li.fuc {
+    background-color: #ccc8;
+    color: #000a;
+}
+
+/* 文件列表样式 */
+ul#items {
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+    width: 100%;
+    list-style: none;
+    overflow: hidden;
+    transition: all .5s;
+}
+
+ul#items li {
+    padding-left: 1rem;
+    background-color: #0000;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 18px;
+    transition: all .5s;
+    cursor: pointer;
+}
+
+ul#items li:hover {
+    background-color: #fff8;
+    color: #000c;
+    font-size: 22px;
+}
+
+ul#items li.fuc {
+    background-color: #ccc8;
+    color: #000a;
+}

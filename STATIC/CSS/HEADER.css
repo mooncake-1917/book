@@ -1,0 +1,85 @@
+/* 顶部导航栏 */
+div#top {
+    display: flex;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 4rem;
+    box-shadow: 0 1px 3px 0 #000a;
+    border-radius: 0 0 1rem 1rem;
+    background-color: #6d7993;
+    transition: all .5s;
+}
+
+div#top>h1 {
+    margin-left: 2rem;
+    text-shadow: 0 0 0 #fff0;
+    color: #d5d5d5;
+    font-family: "VonwaonBitmap 16px";
+    line-height: 4rem;
+    transition: all .3s;
+    cursor: pointer;
+}
+
+div#top>h1:hover {
+    text-shadow: 0 0 3px #fff8;
+    color: #fff;
+}
+
+/* 侧边栏切换按钮 */
+div#top div#side-bool {
+    position: absolute;
+    bottom: .5rem;
+    left: 1rem;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    transition: all .3s;
+    cursor: pointer;
+}
+
+/* 搜索表单 */
+div#top form#search {
+    display: flex;
+    flex-wrap: wrap;
+    width: calc(100% - 14rem - 5rem - 4rem - 4rem);
+    font-family: "Source Han Sans SC Medium";
+}
+
+div#top form#search input#search-key {
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin: auto 0 auto auto;
+    padding: 0 1rem;
+    width: 10rem;
+    height: 2rem;
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 0 3px #0008 inset;
+    background-color: #d5d5d5;
+    overflow: hidden;
+    color: #222;
+    line-height: 2rem;
+    font-family: "Source Han Sans SC Medium";
+    transition: all 1s;
+}
+
+div#top form#search:hover input#search-key, 
+div#top form#search input#search-key:focus {
+    width: calc(100% - 2rem - 2rem - 2rem);
+    border-radius: .5rem;
+}
+
+div#top form#search button#search-submit {
+    margin: auto auto auto 1rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+}

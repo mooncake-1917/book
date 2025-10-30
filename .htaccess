@@ -1,0 +1,158 @@
+# 启用重写引擎
+RewriteEngine On
+
+# 设置默认字符集
+AddDefaultCharset UTF-8
+
+# 安全设置 - 隐藏敏感文件
+<Files ~ "^\.">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# 保护配置文件
+<Files "*.sql">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "*.env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# 设置错误页面
+ErrorDocument 404 /index.php
+ErrorDocument 403 /login.php
+ErrorDocument 500 /index.php
+
+# 强制HTTPS（如果启用SSL）
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 移除.php扩展名
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# URL重写规则 - 美化Markdown页面URL
+# 将 /目录名/文件名 重写为 index.php?dir=目录名&file=文件名
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^/]+)/([^/]+)/?$ index.php?dir=$1&file=$2 [L,QSA]
+
+# 文件中心路由
+RewriteRule ^files/?$ files.php [L]
+
+# 搜索功能路由
+RewriteRule ^search/?$ RELESEAS/search.php [L]
+
+# 静态资源缓存控制
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # 图片缓存1个月
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    
+    # CSS和JS缓存1个月
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    
+    # 字体文件缓存1个月
+    ExpiresByType application/font-woff2 "access plus 1 month"
+    ExpiresByType application/font-woff "access plus 1 month"
+    ExpiresByType application/x-font-ttf "access plus 1 month"
+</IfModule>
+
+# Gzip压缩
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/font-woff2
+</IfModule>
+
+# 安全头设置
+<IfModule mod_headers.c>
+    # 防止点击劫持
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # 防止MIME类型嗅探
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # 启用XSS保护
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # 防止信息泄露
+    Header always unset X-Powered-By
+    Header always unset Server
+    
+    # CSP策略（根据实际需求调整）
+    # Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+</IfModule>
+
+# 文件上传限制
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 128M
+</IfModule>
+
+# 禁止访问敏感目录
+RewriteRule ^(MARKDOWN|PDFS|TOOLS|RELEASES)(/.*)?$ - [F,L]
+
+# 但允许通过PHP脚本访问这些目录的内容
+RewriteCond %{REQUEST_URI} !^/index\.php
+RewriteCond %{REQUEST_URI} !^/files\.php
+RewriteCond %{REQUEST_URI} !^/upload\.php
+RewriteRule ^(MARKDOWN|PDFS)/ - [F,L]
+
+# 保护上传的文件目录
+<Directory "MARKDOWN/">
+    Options -Indexes
+    Deny from all
+</Directory>
+
+<Directory "PDFS/">
+    Options -Indexes
+    Deny from all
+</Directory>
+
+# 允许通过PHP脚本访问
+<Files "*.php">
+    Allow from all
+</Files>
+
+# 设置默认索引文件
+DirectoryIndex index.php
+
+# 禁止目录列表
+Options -Indexes
+
+# 自定义404错误页面
+ErrorDocument 404 "<h1>页面未找到</h1><p>您访问的页面不存在，<a href='/'>返回首页</a></p>"
+
+# 重定向旧的.php URL到新的友好URL
+RewriteCond %{THE_REQUEST} /index\.php\?dir=([^&]+)&file=([^\s&]+) [NC]
+RewriteRule ^ /%1/%2? [R=301,L]
+
+# 处理带斜杠的URL
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_URI} ^(.+)/$
+RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+# 移动设备检测和重定向（可选）
+# RewriteCond %{HTTP_USER_AGENT} (android|blackberry|iphone|ipod|palm|windows\ phone) [NC]
+# RewriteRule ^$ /mobile/ [L,R=302]

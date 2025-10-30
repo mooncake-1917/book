@@ -1,0 +1,213 @@
+@import url("FONTFAMILY.css");
+* {
+	margin: 0;
+	padding: 0;
+}
+body {
+	background-color: #d5d5d5;
+	transition: all .3s;
+}
+body.dark {
+	background-color: #2a2f3a;
+	color: #ccc;
+}
+div#search {
+	display: flex;
+	flex-wrap: wrap;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 10;
+	height: 4rem;
+	box-shadow: 0 1px 3px 0 #000a;
+	border-radius: 0 0 1rem 1rem;
+	background-color: #6d7993;
+}
+body.dark div#search {
+	background-color: #1a1f2a;
+}
+input#search-text {
+	outline: none;
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	margin: auto .5rem auto auto;
+	padding: 0 1rem;
+	width: calc(80% - 4rem - .5rem - .5rem - 5rem);
+	height: 2rem;
+	border: none;
+	border-radius: 1rem;
+	box-shadow: 0 0 3px #0008 inset;
+	background-color: #d5d5d5;
+	overflow: hidden;
+	color: #222;
+	line-height: 2rem;
+	font-size: 18px;
+	font-family: "Source Han Sans SC Medium";
+	transition: all 1s;
+}
+body.dark input#search-text {
+	background-color: #3a3f4a;
+	color: #ccc;
+}
+input#search-text:focus {
+	border-radius: .5rem;
+}
+button#search-submit {
+	margin: auto auto auto .5rem;
+	width: 4rem;
+	height: 2rem;
+	border: none;
+	border-radius: .5rem;
+	background-color: #96858f;
+	box-shadow: 0 0 0 0 #0000, 0 0 0px 0 #0000 inset;
+	color: #d5d5d5;
+	line-height: 2rem;
+	text-align: center;
+	font-size: 20px;
+	font-family: "Source Han Sans SC Medium";
+	transition: all .5s;
+	cursor: pointer;
+}
+body.dark button#search-submit {
+	background-color: #3a3f4a;
+	color: #eac67a;
+}
+button#search-submit:hover {
+	box-shadow: 0 0 10px 0 #0008;
+	color: #fff;
+}
+body.dark button#search-submit:hover {
+	background-color: #4a4f5a;
+}
+button#search-submit:active {
+	box-shadow: 0 0 0 0 #000, 0 0 3px 0 #0008 inset;
+}
+input#theme {
+	outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+	display: block;
+    position: relative;
+	margin: auto;
+    width: 5rem;
+    height: 2rem;
+    border-radius: 2rem;
+	box-shadow: 0 0 3px #0008 inset;
+	background: #d5d5d5;
+	color: #96858f;
+	transition: all 300ms;
+}
+input#theme::after {
+	content: "☀";
+    display: inline-block;
+    position: absolute;
+	top: 0;
+	left: 0;
+	transform: rotate(0deg);
+    width: 2rem;
+	font-size: 2rem;
+	text-align: center;
+	text-shadow: 0 0 1px #0008;
+	line-height: 2rem;
+	transition: all 300ms;
+	cursor: pointer;
+}
+input#theme:checked {
+	background: #3a3f4a;
+}
+input#theme:checked::after {
+	content: "☪";
+    position: absolute;
+    left: 3rem;
+	transform: rotate(360deg);
+	color: #eac67a;
+}
+div#main {
+	position: fixed;
+	top: 4rem;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+div.search-item {
+	margin: 1rem;
+	padding: 1rem;
+	border-radius: 1rem;
+	background-color: #e5e5e5;
+	box-shadow: 0 0 0 0 #0000;
+	transition: all .5s;
+	cursor: pointer;
+}
+body.dark div.search-item {
+	background-color: #3a3f4a;
+}
+div.search-item:hover {
+	background-color: #fff;
+	box-shadow: 0 0 10px 0 #0008;
+}
+body.dark div.search-item:hover {
+	background-color: #4a4f5a;
+}
+div.search-item-title {
+	font-size: 2rem;
+	font-family: "Source Han Serif CN";
+	font-weight: bold;
+	transition: all .3s;
+}
+body.dark div.search-item-title:hover {
+	color: #fff;
+}
+div.search-item-link {
+	color: #6d7993;
+	text-decoration: underline;
+	font-family: "VonwaonBitmap 16px";
+	font-weight: bold;
+	transition: all .5s;
+}
+body.dark div.search-item-link {
+	color: #aa8;
+}
+div.search-item-link:hover {
+	color: #9099a2;
+}
+body.dark div.search-item-link:hover {
+	color: #bcbcaa;
+}
+div.search-item-link:active {
+	color: #96858f;
+}
+body.dark div.search-item-link:active {
+	color: #eac67a;
+}
+div.search-item-text {
+	margin-top: .5rem;
+	font-family: "GenWanMin TW TTF Regular";
+	transition: all .3s;
+}
+body.dark div.search-item-text:hover {
+	color: #fff;
+}
+div.search-item-text p {
+	margin: 5px 0;
+}
+span.search-item-text-key {
+	color: #96858f;
+	text-decoration: underline wavy;
+}
+body.dark span.search-item-text-key {
+	color: #eac67a;
+}
+div.search-item-tree {
+	margin-top: .5rem;
+	border-top: 3px solid #9099a2;
+	color: #9099a2;
+	font-family: "Source Han Sans SC Medium";
+	font-weight: bold;
+}
+body.dark div.search-item-tree {
+	border-top: 3px solid #a1a2a2;
+	color: #a1a2a2;
+}

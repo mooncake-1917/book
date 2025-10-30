@@ -1,0 +1,27 @@
+body.dark {
+	background-color: #2a2f3a;
+	color: #ccc;
+}
+body.dark div#top {
+	background-color: #1a1f2a;
+}
+body.dark div#top>h1 {
+	color: #eac67a;
+}
+body.dark div#top form#search input#search-key {
+	background-color: #3a3f4a;
+	color: #ccc;
+}
+body.dark div#side {
+	background-color: #4a4f5a;
+}
+body.dark ul#tree {
+	background-color: #3a3f4a;
+}
+body.dark :is(ul#tree, ul#items) li {
+	color: #bcbf89;
+}
+body.dark :is(ul#tree, ul#items) li:hover {
+	background-color: #1a1f2a82;
+	color: #ddcfaa;
+}

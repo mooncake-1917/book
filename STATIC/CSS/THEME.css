@@ -1,0 +1,46 @@
+/* 主题切换开关 */
+input#theme {
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    display: block;
+    margin: 0 auto;
+    position: relative;
+    top: 1rem;
+    width: 5rem;
+    height: 2rem;
+    border-radius: 2rem;
+    box-shadow: 0 0 3px #0008 inset;
+    background: #d5d5d5;
+    color: #96858f;
+    transition: all 300ms;
+    cursor: pointer;
+}
+
+input#theme::after {
+    content: "☀";
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotate(0deg);
+    width: 2rem;
+    font-size: 2rem;
+    text-align: center;
+    text-shadow: 0 0 1px #0008;
+    line-height: 2rem;
+    transition: all 300ms;
+}
+
+input#theme:checked {
+    background: #3a3f4a;
+}
+
+input#theme:checked::after {
+    content: "☪";
+    position: absolute;
+    left: 3rem;
+    transform: rotate(360deg);
+    color: #eac67a;
+}

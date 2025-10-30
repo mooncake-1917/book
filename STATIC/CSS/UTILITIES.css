@@ -1,0 +1,54 @@
+/* 滚动条样式 */
+#side, #tree, #items, #main {
+    scrollbar-width: thin;
+    scrollbar-color: #96858f #f1f1f1;
+}
+
+#side::-webkit-scrollbar, #tree::-webkit-scrollbar, 
+#items::-webkit-scrollbar, #main::-webkit-scrollbar {
+    width: 6px;
+}
+
+#side::-webkit-scrollbar-track, #tree::-webkit-scrollbar-track,
+#items::-webkit-scrollbar-track, #main::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#side::-webkit-scrollbar-thumb, #tree::-webkit-scrollbar-thumb,
+#items::-webkit-scrollbar-thumb, #main::-webkit-scrollbar-thumb {
+    background: #96858f;
+    border-radius: 3px;
+}
+
+#side::-webkit-scrollbar-thumb:hover, #tree::-webkit-scrollbar-thumb:hover,
+#items::-webkit-scrollbar-thumb:hover, #main::-webkit-scrollbar-thumb:hover {
+    background: #6d7993;
+}
+
+/* 触摸优化 */
+.touch-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* 动画类 */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
