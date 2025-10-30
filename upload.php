@@ -28,9 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         
         // 数据库配置 - 使用与login.php相同的配置
         $localhost = 'localhost';
-        $db_user = 'root';
-        $db_pass = '';
-        $db_name = 'test';
+        $db_user = 'user';
+        $db_pass = '19207572133';
+        $db_name = 'book';
         
         $mysqli = new mysqli($localhost, $db_user, $db_pass, $db_name);
         if ($mysqli->connect_errno) {
