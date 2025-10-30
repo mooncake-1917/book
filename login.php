@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = '请填写用户名和密码';
     } else {
         $localhost = 'localhost';
-        $db_user = 'root';
-        $db_pass = '';
-        $db_name = 'test';
+        $db_user = 'user';
+        $db_pass = '19207572133';
+        $db_name = 'book';
 
         $mysqli = new mysqli($localhost, $db_user, $db_pass, $db_name);
         if ($mysqli->connect_errno) {
