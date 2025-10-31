@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['username'] = $name;
                         $_SESSION['login_time'] = time();
                         
-                        $message = '登录成功！正在跳转...';
+                        $message = '登录成功！正在重定向...';
                         
                         // 延迟重定向以便显示成功消息
                         header('Refresh: 2; URL=index.php');
