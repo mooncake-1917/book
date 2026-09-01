@@ -57,6 +57,7 @@ if ($page_dir === '' || $page_md === '') {
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/ROOT.css?v=<?php echo time(); ?>" />
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/CORE.css?v=<?php echo time(); ?>" />
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/DARK.css?v=<?php echo time(); ?>" />
+    <link rel="stylesheet" type="text/css" href="/STATIC/CSS/APP.css?v=<?php echo time(); ?>" />
 </head>
 <body <?php if (isset($_COOKIE["theme"]) && $_COOKIE["theme"] == "dark") echo 'class="dark"'; ?>>
     <div id="top">
@@ -119,15 +120,16 @@ if ($page_dir === '' || $page_md === '') {
             </ul>
         </div>
         <div id="main">
-            <?php echo $rendered; ?>
+            <div class="content-card"><?php echo $rendered; ?></div>
         </div>
+    </div>
+    <div id="user-info">
+        <span class="user-name">👤 <?php echo e($_SESSION['username'] ?? ''); ?></span>
+        <a href="upload.php">上传文件</a>
+        <a href="logout.php" class="logout" onclick="return confirm('确定要退出登录吗？')">退出</a>
     </div>
     <script type="text/javascript" src="/STATIC/JS/THEME.js?v=<?php echo time(); ?>"></script>
     <script type="text/javascript" src="/STATIC/JS/SIDE.js?v=<?php echo time(); ?>"></script>
     <script type="text/javascript" src="/STATIC/JS/MARKDOWNSEARCH.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>
-<div id="user-info">
-    <span>欢迎，<?php echo e($_SESSION['username'] ?? ''); ?></span>
-    <a href="logout.php" onclick="return confirm('确定要退出登录吗？')">退出</a>
-</div>

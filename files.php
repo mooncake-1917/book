@@ -43,6 +43,7 @@ if ($file_dir !== '' && $file_pdf !== '') {
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/CORE.css?v=<?php echo time(); ?>" />
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/ROOT.css?v=<?php echo time(); ?>" />
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/DARK.css?v=<?php echo time(); ?>" />
+    <link rel="stylesheet" type="text/css" href="/STATIC/CSS/APP.css?v=<?php echo time(); ?>" />
 </head>
 <body <?php if (isset($_COOKIE["theme"]) && $_COOKIE["theme"] == "dark") echo 'class="dark"'; ?>>
     <div id="top">
@@ -113,12 +114,14 @@ if ($file_dir !== '' && $file_pdf !== '') {
                 if ($pdfReal !== null) {
                     echo '<div id="ifPdf"></div>';
                 } else {
-                    echo '<h1>文件不存在</h1><p>您访问的 PDF 不存在或已被移除。</p>';
+                    echo '<div class="content-card"><h1>文件不存在</h1><p>您访问的 PDF 不存在或已被移除。</p></div>';
                 }
             } else {
+                echo '<div class="content-card">';
                 echo "<h1>实用技术知识库-文件中心</h1>";
                 echo "<p>本站旨在为用户提供一些技术知识内容的电子书籍，帮助用户解决一部分问题。</p>";
                 echo "<p>本站不享有文件的版权，文件作者保留一切权利，如有侵权，本站将迅速删除。</p>";
+                echo '</div>';
             }
             ?>
         </div>
@@ -128,6 +131,11 @@ if ($file_dir !== '' && $file_pdf !== '') {
         PDFObject.embed(<?php echo json_encode('/download.php?dir=' . rawurlencode($file_dir) . '&file=' . rawurlencode($file_pdf) . '&inline=1', JSON_UNESCAPED_SLASHES); ?>, "#ifPdf");
     </script>
     <?php endif; ?>
+    <div id="user-info">
+        <span class="user-name">👤 <?php echo e($_SESSION['username'] ?? ''); ?></span>
+        <a href="upload.php">上传文件</a>
+        <a href="logout.php" class="logout" onclick="return confirm('确定要退出登录吗？')">退出</a>
+    </div>
     <script type="text/javascript" src="/STATIC/JS/THEME.js?v=<?php echo time(); ?>"></script>
     <script type="text/javascript" src="/STATIC/JS/SIDE.js?v=<?php echo time(); ?>"></script>
     <script type="text/javascript" src="/STATIC/JS/MARKDOWNSEARCH.js?v=<?php echo time(); ?>"></script>
