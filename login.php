@@ -12,50 +12,48 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $message = '';
-$name = '';
+$login = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
-    $name = trim((string)($_POST['username'] ?? ''));
+    $login = trim((string)($_POST['login'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
+    $throttleId = strtolower($login) . '|' . (string)($_SERVER['REMOTE_ADDR'] ?? '');
 
-    // 简单的暴力破解防护：同一会话 5 次失败后锁定 5 分钟
-    $attempts = (int)($_SESSION['login_attempts'] ?? 0);
-    $lastAttempt = (int)($_SESSION['login_last_attempt'] ?? 0);
-
-    if ($attempts >= 5 && (time() - $lastAttempt) < 300) {
+    if ($login === '' || $password === '') {
+        $message = '请填写用户名/邮箱和密码';
+    } elseif (login_throttle_check($throttleId)) {
         $message = '登录失败次数过多，请 5 分钟后再试';
-    } elseif ($name === '' || $password === '') {
-        $message = '请填写用户名和密码';
     } else {
         $mysqli = db_connect();
-        $stmt = $mysqli->prepare('SELECT id, password FROM users WHERE name = ? LIMIT 1');
-        if ($stmt) {
-            $stmt->bind_param('s', $name);
-            $stmt->execute();
-            $stmt->bind_result($user_id, $db_password);
-            $ok = $stmt->fetch() && password_verify($password, (string)$db_password);
-            $stmt->close();
-            $mysqli->close();
+        $stmt = $mysqli->prepare('SELECT id, name, password, role, status, email_verified_at FROM users WHERE name = ? OR email = ? LIMIT 1');
+        $stmt->bind_param('ss', $login, $login);
+        $stmt->execute();
+        $stmt->bind_result($uid, $uname, $db_password, $role, $status, $verifiedAt);
+        $found = $stmt->fetch();
+        $stmt->close();
+        $mysqli->close();
 
-            if ($ok) {
-                session_regenerate_id(true);
-                $_SESSION['user_id'] = (int)$user_id;
-                $_SESSION['username'] = $name;
-                $_SESSION['login_time'] = time();
-                unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
-                header('Location: index.php');
-                exit;
-            }
-
-            $_SESSION['login_attempts'] = $attempts + 1;
-            $_SESSION['login_last_attempt'] = time();
-            $message = '用户名或密码错误';
+        if (!$found || !password_verify($password, (string)$db_password)) {
+            login_throttle_record($throttleId);
+            $message = '用户名/邮箱或密码错误';
+        } elseif ($verifiedAt === null) {
+            $message = '请先前往邮箱完成验证';
+        } elseif ($status === 'pending') {
+            $message = '账号待管理员审核，请耐心等待';
+        } elseif ($status === 'rejected') {
+            $message = '账号注册申请已被拒绝';
+        } elseif ($status === 'disabled') {
+            $message = '账号已被禁用';
         } else {
-            $mysqli->close();
-            error_log('[book] 登录查询准备失败');
-            $message = '服务器暂时不可用，请稍后再试';
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = (int)$uid;
+            $_SESSION['username'] = (string)$uname;
+            $_SESSION['role'] = (string)$role;
+            $_SESSION['login_time'] = time();
+            header('Location: index.php');
+            exit;
         }
     }
 }
@@ -84,13 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form class="login-form" method="post" action="">
             <?php echo csrf_field(); ?>
             <div class="form-group">
-                <input type="text" name="username" placeholder="用户名" value="<?php echo e($name); ?>" required autocomplete="username">
+                <input type="text" name="login" placeholder="用户名或邮箱" value="<?php echo e($login); ?>" required autocomplete="username">
             </div>
             <div class="form-group">
                 <input type="password" name="password" placeholder="密码" required autocomplete="current-password">
             </div>
             <button type="submit">登录</button>
         </form>
+        <p class="auth-switch">还没有账号？<a href="register.php">注册</a></p>
     </div>
 </body>
 </html>

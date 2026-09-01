@@ -125,7 +125,9 @@ if ($page_dir === '' || $page_md === '') {
     </div>
     <div id="user-info">
         <span class="user-name">👤 <?php echo e($_SESSION['username'] ?? ''); ?></span>
+        <a href="messages.php">私信</a>
         <a href="upload.php">上传文件</a>
+        <?php if (($_SESSION['role'] ?? '') === 'admin'): ?><a href="admin.php">审核</a><?php endif; ?>
         <a href="logout.php" class="logout" onclick="return confirm('确定要退出登录吗？')">退出</a>
     </div>
     <script type="text/javascript" src="/STATIC/JS/THEME.js?v=<?php echo time(); ?>"></script>
