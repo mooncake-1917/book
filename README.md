@@ -10,7 +10,7 @@
 - 📤 文件上传（.md / .txt / .pdf，类型与大小校验）
 - 📧 邮箱注册：Resend 发送验证邮件，管理员后台审核通过后方可登录
 - 💬 站内私信：会话列表、未读提醒、回复，可选邮件通知
-- 🧱 Redis 支持：会话存储与登录限流（未安装 phpredis 时自动回退）
+- 🧱 Redis 支持：会话存储、登录限流、私信未读缓存（未安装 phpredis 时自动回退）
 - 🌙 亮色 / 暗色主题切换
 - 📱 响应式布局，适配移动端
 - 🔐 登录认证、CSRF 防护、路径穿越防护、会话加固
@@ -19,7 +19,8 @@
 
 ```text
 book/
-├── .htaccess              # Apache 路由与安全规则
+├── nginx.conf.example     # Nginx 配置示例
+├── .htaccess              # Apache 配置（使用 Nginx 时可忽略）
 ├── config.sample.php      # 配置示例（复制为 config.php）
 ├── database.sql           # 全新安装初始化脚本（v2）
 ├── database_migration_v2.sql  # v1 -> v2 增量迁移脚本
@@ -42,6 +43,7 @@ book/
 │   ├── security.php
 │   ├── redis.php
 │   ├── mail.php
+│   ├── messaging.php
 │   ├── Parsedown.php
 │   ├── GET_ITEMS.php
 │   ├── GET_MD.php
@@ -54,7 +56,8 @@ book/
 
 - PHP 7.4+（推荐 8.x），需 `curl`、`mysqli`；可选 `redis`（phpredis 扩展）
 - MySQL 5.7+ / MariaDB 10.3+
-- Apache 2.4+，启用 `mod_rewrite`、`mod_headers`
+- **Nginx 1.18+**（推荐）或 Apache 2.4+
+- PHP-FPM（Nginx 环境）
 - Resend 账号（https://resend.com）用于注册验证邮件
 - Redis（可选，未安装时自动回退到文件会话）
 
@@ -105,14 +108,26 @@ book/
 
 5. **目录权限**
 
-   确保 Web 服务器对 `MARKDOWN/`、`PDFS/` 有读写权限：
+   确保 PHP-FPM 运行用户对 `MARKDOWN/`、`PDFS/` 有读写权限：
 
    ```bash
+   chown -R www-data:www-data MARKDOWN PDFS   # 用户视实际运行用户而定
    chmod -R 755 MARKDOWN PDFS
-   # 具体属主视运行环境（如 www-data / apache）调整
    ```
 
-6. **访问站点**，未登录会自动跳转到登录页。
+6. **配置 Web 服务器**
+
+   **Nginx（推荐）**：参考 `nginx.conf.example`，替换域名、`root` 与 PHP-FPM socket 后，重载 Nginx：
+
+   ```bash
+   nginx -t && systemctl reload nginx
+   ```
+
+   > 注意：`.htaccess` 是 Apache 配置，在 Nginx 下不生效，所有安全规则与路由都已写在 `nginx.conf.example` 中。
+
+   **Apache**：确保站点允许读取 `.htaccess`（`AllowOverride All`），仓库内已提供对应配置。
+
+7. **访问站点**，未登录会自动跳转到登录页。
 
 > ⚠️ `config.php` 已加入 `.gitignore`，不要提交到版本库。
 
@@ -127,7 +142,7 @@ book/
 ### 私信
 
 - 登录后点击右下角「私信」进入私信页；
-- 可查看会话列表、未读数量，输入对方用户名发送私信；
+- 可查看会话列表、未读数量，输入对方用户名发送纯文字私信；
 - 若配置了 Resend，收件人会收到邮件通知。
 
 ### 添加 Markdown / PDF
@@ -141,8 +156,8 @@ book/
 ## 🧱 Redis 说明
 
 - 安装 phpredis 扩展并配置 `REDIS_HOST` 等项后自动启用；
-- 用于：会话存储（替代文件会话）、登录失败限流（全局计数）；
-- 未安装或连接失败时自动回退，不影响站点运行。
+- 用于：会话存储、登录失败限流（全局计数）、私信未读缓存；
+- 未安装或连接失败时自动回退到文件会话 / 数据库查询，不影响站点运行。
 
 ## 🔐 安全说明
 
@@ -151,7 +166,8 @@ book/
 - 上传功能要求登录并使用 CSRF Token；
 - 所有文件访问均经过路径穿越校验；
 - Markdown 渲染已转义原始 HTML；PDF 经 `download.php` 登录保护后输出；
-- 建议启用 HTTPS，并取消 `.htaccess` 中强制 HTTPS 的注释。
+- Nginx 下 `MARKDOWN/`、`PDFS/`、`TOOLS/`（除 AJAX 接口）与敏感文件均禁止直接访问；
+- 建议启用 HTTPS。
 
 ## 📄 许可证
 
