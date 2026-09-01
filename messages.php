@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/TOOLS/security.php';
 require __DIR__ . '/TOOLS/mail.php';
+require __DIR__ . '/TOOLS/messaging.php';
 require_login();
 
 $me = current_user_id();
@@ -37,6 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute()) {
                 $message = '私信已发送';
                 $viewWith = (int)$rid;
+
+                // 收件人未读缓存失效，下次读取时重新计算
+                unread_invalidate((int)$rid, $me);
 
                 // 邮件通知（若 Resend 已配置）
                 $html = '<h2>您收到一条新私信</h2>'
@@ -100,13 +104,8 @@ foreach ($otherIds as $oid) {
     }
     $stmt->close();
 
-    $unread = 0;
-    $stmt = $mysqli->prepare('SELECT COUNT(*) FROM messages WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL');
-    $stmt->bind_param('ii', $oid, $me);
-    $stmt->execute();
-    $stmt->bind_result($unread);
-    $stmt->fetch();
-    $stmt->close();
+    // 未读数优先从 Redis 缓存读取，未命中则回源数据库并写入缓存
+    $unread = unread_between($me, $oid);
 
     $conversations[] = [
         'id' => $oid,
@@ -117,6 +116,8 @@ foreach ($otherIds as $oid) {
     ];
 }
 $mysqli->close();
+
+$totalUnread = unread_total($me);
 
 // 会话详情
 $thread = [];
@@ -137,7 +138,12 @@ if ($viewWith > 0 && $viewWith !== $me) {
     $stmt->bind_param('ii', $viewWith, $me);
     $stmt->execute();
     $stmt->close();
+    $mysqli->close();
 
+    // 我的未读缓存失效
+    unread_invalidate($me, $viewWith);
+
+    $mysqli = db_connect();
     $stmt = $mysqli->prepare(
         'SELECT sender_id, recipient_id, body, created_at, read_at
            FROM messages
@@ -167,7 +173,7 @@ if ($viewWith > 0 && $viewWith !== $me) {
 <body <?php if (isset($_COOKIE["theme"]) && $_COOKIE["theme"] == "dark") echo 'class="dark"'; ?>>
 <div class="account-container">
     <div class="account-card">
-        <h1>私信</h1>
+        <h1>私信<?php if ($totalUnread > 0): ?> <span class="badge"><?php echo (int)$totalUnread; ?></span><?php endif; ?></h1>
         <?php if ($message !== ''): ?>
             <div class="message <?php echo (strpos($message, '已发送') !== false) ? 'success' : 'error'; ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
@@ -192,7 +198,7 @@ if ($viewWith > 0 && $viewWith !== $me) {
             </form>
             <p style="margin-top:14px"><a class="btn ghost" href="messages.php">← 返回私信列表</a></p>
         <?php else: ?>
-            <h2>我的会话</h2>
+            <h2>我的会话<?php if ($totalUnread > 0): ?> <span class="badge"><?php echo (int)$totalUnread; ?></span><?php endif; ?></h2>
             <?php if (empty($conversations)): ?>
                 <p>暂无私信</p>
             <?php else: ?>

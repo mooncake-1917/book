@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/TOOLS/security.php';
 require_login();
+require __DIR__ . '/TOOLS/messaging.php';
+
+$unreadCount = unread_total(current_user_id());
 
 // ---------- 解析请求路径 ----------
 $request_uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
@@ -125,7 +128,7 @@ if ($page_dir === '' || $page_md === '') {
     </div>
     <div id="user-info">
         <span class="user-name">👤 <?php echo e($_SESSION['username'] ?? ''); ?></span>
-        <a href="messages.php">私信</a>
+        <a href="messages.php">私信<?php if ($unreadCount > 0): ?><span class="unread-badge"><?php echo (int)$unreadCount; ?></span><?php endif; ?></a>
         <a href="upload.php">上传文件</a>
         <?php if (($_SESSION['role'] ?? '') === 'admin'): ?><a href="admin.php">审核</a><?php endif; ?>
         <a href="logout.php" class="logout" onclick="return confirm('确定要退出登录吗？')">退出</a>
