@@ -2,15 +2,13 @@
 declare(strict_types=1);
 
 /**
- * book 项目集中安全工具
- * 包含：数据库配置、会话安全、登录校验、CSRF 防护、路径穿越防护、输出转义
+ * book 项目集中安全与基础设施工具
+ * 包含：配置读取、数据库、会话（可 Redis）、登录校验、CSRF、路径穿越防护、限流
  */
 
-/**
- * 读取数据库配置。优先读取站点根目录 config.php（返回数组），
- * 其次读取环境变量。config.php 不应提交到版本库（见 .gitignore）。
- */
-function db_config(): array
+require_once __DIR__ . '/redis.php';
+
+function site_config(): array
 {
     static $config = null;
     if ($config !== null) {
@@ -27,19 +25,48 @@ function db_config(): array
     }
 
     $config = [
-        'host' => $values['DB_HOST'] ?? (getenv('DB_HOST') ?: 'localhost'),
-        'user' => $values['DB_USER'] ?? (getenv('DB_USER') ?: ''),
-        'pass' => $values['DB_PASS'] ?? (getenv('DB_PASS') ?: ''),
-        'name' => $values['DB_NAME'] ?? (getenv('DB_NAME') ?: 'book'),
+        'DB_HOST' => (string)($values['DB_HOST'] ?? (getenv('DB_HOST') ?: 'localhost')),
+        'DB_USER' => (string)($values['DB_USER'] ?? (getenv('DB_USER') ?: '')),
+        'DB_PASS' => (string)($values['DB_PASS'] ?? (getenv('DB_PASS') ?: '')),
+        'DB_NAME' => (string)($values['DB_NAME'] ?? (getenv('DB_NAME') ?: 'book')),
+        'SITE_URL' => rtrim((string)($values['SITE_URL'] ?? (getenv('SITE_URL') ?: '')), '/'),
+        'RESEND_API_KEY' => (string)($values['RESEND_API_KEY'] ?? (getenv('RESEND_API_KEY') ?: '')),
+        'RESEND_FROM' => (string)($values['RESEND_FROM'] ?? (getenv('RESEND_FROM') ?: '')),
+        'REDIS_HOST' => (string)($values['REDIS_HOST'] ?? (getenv('REDIS_HOST') ?: '127.0.0.1')),
+        'REDIS_PORT' => (int)($values['REDIS_PORT'] ?? (getenv('REDIS_PORT') ?: 6379)),
+        'REDIS_PASS' => (string)($values['REDIS_PASS'] ?? (getenv('REDIS_PASS') ?: '')),
+        'REDIS_PREFIX' => (string)($values['REDIS_PREFIX'] ?? (getenv('REDIS_PREFIX') ?: 'book:')),
     ];
 
-    if ($config['user'] === '' || $config['pass'] === '') {
+    return $config;
+}
+
+function site_base_url(): string
+{
+    $c = site_config();
+    if ($c['SITE_URL'] !== '') {
+        return $c['SITE_URL'];
+    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+    return ($https ? 'https' : 'http') . '://' . $host;
+}
+
+function db_config(): array
+{
+    $c = site_config();
+    if ($c['DB_USER'] === '' || $c['DB_PASS'] === '') {
         error_log('[book] 数据库配置缺失，请复制 config.sample.php 为 config.php 并填写');
         http_response_code(500);
         exit('服务器配置错误：数据库未配置');
     }
 
-    return $config;
+    return [
+        'host' => $c['DB_HOST'],
+        'user' => $c['DB_USER'],
+        'pass' => $c['DB_PASS'],
+        'name' => $c['DB_NAME'],
+    ];
 }
 
 function db_connect(): mysqli
@@ -57,9 +84,6 @@ function db_connect(): mysqli
     }
 }
 
-/**
- * 安全地开启会话：设置 HttpOnly / SameSite / Secure(HTTPS 时) Cookie
- */
 function sec_session_start(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -78,12 +102,18 @@ function sec_session_start(): void
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
+
+    // 若 Redis 可用，使用 Redis 存储会话；否则自动回退到文件会话
+    redis_session_setup();
+
     session_start();
 }
 
-/**
- * 要求已登录，否则 302 跳转到登录页
- */
+function current_user_id(): int
+{
+    return (int)($_SESSION['user_id'] ?? 0);
+}
+
 function require_login(string $redirect = 'login.php'): void
 {
     sec_session_start();
@@ -93,9 +123,15 @@ function require_login(string $redirect = 'login.php'): void
     }
 }
 
-/**
- * 供 AJAX 接口使用：未登录返回 401 JSON
- */
+function require_admin(): void
+{
+    require_login();
+    if (($_SESSION['role'] ?? '') !== 'admin') {
+        http_response_code(403);
+        exit('需要管理员权限');
+    }
+}
+
 function require_login_api(): void
 {
     sec_session_start();
@@ -107,9 +143,6 @@ function require_login_api(): void
     }
 }
 
-/**
- * 生成/获取当前会话的 CSRF Token
- */
 function csrf_token(): string
 {
     sec_session_start();
@@ -119,17 +152,11 @@ function csrf_token(): string
     return $_SESSION['csrf_token'];
 }
 
-/**
- * 输出隐藏域，用于表单
- */
 function csrf_field(): string
 {
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-/**
- * 校验 POST 或 X-CSRF-Token 头中的 Token
- */
 function verify_csrf(): void
 {
     sec_session_start();
@@ -140,17 +167,11 @@ function verify_csrf(): void
     }
 }
 
-/**
- * HTML 输出转义
- */
 function e($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * 判断单个路径段是否安全（禁止目录穿越与空字节）
- */
 function valid_segment(string $segment): bool
 {
     return $segment !== ''
@@ -161,10 +182,6 @@ function valid_segment(string $segment): bool
         && strpos($segment, "\0") === false;
 }
 
-/**
- * 安全解析站点内相对路径，防止目录穿越。
- * 成功返回规范化后的绝对路径，失败返回 null。
- */
 function secure_realpath(string $base, string ...$segments): ?string
 {
     foreach ($segments as $segment) {
@@ -183,10 +200,42 @@ function secure_realpath(string $base, string ...$segments): ?string
         return null;
     }
 
-    // 确保解析后的路径仍位于基目录内
     if ($full !== $baseReal && strpos($full, $baseReal . DIRECTORY_SEPARATOR) !== 0) {
         return null;
     }
 
     return $full;
+}
+
+/**
+ * 登录限流：优先使用 Redis（全局），不可用时回退到会话计数。
+ */
+function login_throttle_check(string $identifier): bool
+{
+    $r = redis_client();
+    if ($r !== null) {
+        return (int)$r->get('login:' . md5($identifier)) >= 5;
+    }
+
+    sec_session_start();
+    $attempts = (int)($_SESSION['login_attempts'] ?? 0);
+    $last = (int)($_SESSION['login_last_attempt'] ?? 0);
+    return $attempts >= 5 && (time() - $last) < 300;
+}
+
+function login_throttle_record(string $identifier): void
+{
+    $r = redis_client();
+    if ($r !== null) {
+        $key = 'login:' . md5($identifier);
+        $count = $r->incr($key);
+        if ($count === 1) {
+            $r->expire($key, 300);
+        }
+        return;
+    }
+
+    sec_session_start();
+    $_SESSION['login_attempts'] = (int)($_SESSION['login_attempts'] ?? 0) + 1;
+    $_SESSION['login_last_attempt'] = time();
 }

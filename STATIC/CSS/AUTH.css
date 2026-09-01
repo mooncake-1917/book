@@ -1,4 +1,4 @@
-/* AUTH.css — 登录页样式 */
+/* AUTH.css — 登录/注册/验证页样式 */
 * {
     margin: 0;
     padding: 0;
@@ -107,6 +107,24 @@ body {
     background: rgba(185, 92, 92, .1);
     color: #b85c5c;
     border: 1px solid rgba(185, 92, 92, .3);
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.auth-switch a {
+    color: #6d7993;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-switch a:hover {
+    color: #5a6780;
+    text-decoration: underline;
 }
 
 @media (max-width: 480px) {
