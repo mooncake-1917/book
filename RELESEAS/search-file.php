@@ -15,6 +15,7 @@ $hl = '<span class="search-item-text-key">' . $esc_key . '</span>';
     <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
     <title>搜索文件-<?php echo $esc_key; ?></title>
     <link rel="stylesheet" type="text/css" href="/STATIC/CSS/SEARCH.css?v=<?php echo time(); ?>" />
+    <link rel="stylesheet" type="text/css" href="/STATIC/CSS/APP.css?v=<?php echo time(); ?>" />
 </head>
 <body <?php if (isset($_COOKIE["theme"]) && $_COOKIE["theme"] == "dark") echo 'class="dark"'; ?>>
     <div id="search">

@@ -104,109 +104,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
     <title>文件上传 - <?php echo e($_SESSION['username'] ?? ''); ?></title>
-    <style>
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                margin: 10px;
-            }
-
-            .directory-section {
-                padding: 10px;
-                margin: 10px 0;
-            }
-
-            .file-input input[type="file"] {
-                width: 100%;
-                padding: 10px;
-            }
-
-            .submit-btn {
-                width: 100%;
-                padding: 15px;
-                font-size: 16px;
-            }
-
-            .user-info {
-                padding: 8px;
-                font-size: 14px;
-            }
-        }
-
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .container {
-                max-width: 600px;
-                margin: 20px auto;
-            }
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="/STATIC/CSS/APP.css?v=<?php echo time(); ?>" />
+    <link rel="stylesheet" type="text/css" href="/STATIC/CSS/UPLOAD.css?v=<?php echo time(); ?>" />
 </head>
-<body>
+<body <?php if (isset($_COOKIE["theme"]) && $_COOKIE["theme"] == "dark") echo 'class="dark"'; ?>>
     <div class="container">
         <div class="user-info">
-            当前用户: <strong><?php echo e($_SESSION['username'] ?? ''); ?></strong>
+            <span>当前用户: <strong><?php echo e($_SESSION['username'] ?? ''); ?></strong></span>
             <a href="logout.php" class="logout">退出登录</a>
         </div>
 
-        <h2>文件上传</h2>
+        <div class="upload-card">
+            <h2>文件上传</h2>
 
-        <?php if ($message !== ''): ?>
-            <div class="message <?php echo $upload_success ? 'success' : 'error'; ?>">
-                <?php echo e($message); ?>
-            </div>
-        <?php endif; ?>
+            <?php if ($message !== ''): ?>
+                <div class="message <?php echo $upload_success ? 'success' : 'error'; ?>">
+                    <?php echo e($message); ?>
+                </div>
+            <?php endif; ?>
 
-        <form action="upload.php" method="post" enctype="multipart/form-data">
-            <?php echo csrf_field(); ?>
-            <div class="directory-section">
-                <h3>Markdown目录:</h3>
-                <?php
-                $md_base = __DIR__ . '/MARKDOWN';
-                $md_dirs = [];
-                if (is_dir($md_base)) {
-                    foreach (scandir($md_base) as $d) {
-                        if ($d === '.' || $d === '..' || !is_dir($md_base . DIRECTORY_SEPARATOR . $d)) continue;
-                        $md_dirs[] = $d;
+            <form action="upload.php" method="post" enctype="multipart/form-data">
+                <?php echo csrf_field(); ?>
+                <div class="directory-section">
+                    <h3>Markdown目录:</h3>
+                    <?php
+                    $md_base = __DIR__ . '/MARKDOWN';
+                    $md_dirs = [];
+                    if (is_dir($md_base)) {
+                        foreach (scandir($md_base) as $d) {
+                            if ($d === '.' || $d === '..' || !is_dir($md_base . DIRECTORY_SEPARATOR . $d)) continue;
+                            $md_dirs[] = $d;
+                        }
                     }
-                }
-                usort($md_dirs, 'strnatcasecmp');
-                foreach ($md_dirs as $d) {
-                    echo "<label><input type='radio' name='dir' value='0" . e($d) . "' required> " . e($d) . "</label><br>";
-                }
-                if (empty($md_dirs)) {
-                    echo "<p>暂无Markdown目录</p>";
-                }
-                ?>
-            </div>
-
-            <div class="directory-section">
-                <h3>PDF目录:</h3>
-                <?php
-                $pdf_base = __DIR__ . '/PDFS';
-                $pdf_dirs = [];
-                if (is_dir($pdf_base)) {
-                    foreach (scandir($pdf_base) as $d) {
-                        if ($d === '.' || $d === '..' || !is_dir($pdf_base . DIRECTORY_SEPARATOR . $d)) continue;
-                        $pdf_dirs[] = $d;
+                    usort($md_dirs, 'strnatcasecmp');
+                    foreach ($md_dirs as $d) {
+                        echo "<label><input type='radio' name='dir' value='0" . e($d) . "' required> " . e($d) . "</label><br>";
                     }
-                }
-                usort($pdf_dirs, 'strnatcasecmp');
-                foreach ($pdf_dirs as $d) {
-                    echo "<label><input type='radio' name='dir' value='1" . e($d) . "' required> " . e($d) . "</label><br>";
-                }
-                if (empty($pdf_dirs)) {
-                    echo "<p>暂无PDF目录</p>";
-                }
-                ?>
-            </div>
+                    if (empty($md_dirs)) {
+                        echo "<p>暂无Markdown目录</p>";
+                    }
+                    ?>
+                </div>
 
-            <div class="file-input">
-                <label for="file">选择文件 (支持 .md, .txt, .pdf, 最大10MB):</label><br>
-                <input type="file" name="file" id="file" accept=".md,.txt,.pdf" required>
-            </div>
+                <div class="directory-section">
+                    <h3>PDF目录:</h3>
+                    <?php
+                    $pdf_base = __DIR__ . '/PDFS';
+                    $pdf_dirs = [];
+                    if (is_dir($pdf_base)) {
+                        foreach (scandir($pdf_base) as $d) {
+                            if ($d === '.' || $d === '..' || !is_dir($pdf_base . DIRECTORY_SEPARATOR . $d)) continue;
+                            $pdf_dirs[] = $d;
+                        }
+                    }
+                    usort($pdf_dirs, 'strnatcasecmp');
+                    foreach ($pdf_dirs as $d) {
+                        echo "<label><input type='radio' name='dir' value='1" . e($d) . "' required> " . e($d) . "</label><br>";
+                    }
+                    if (empty($pdf_dirs)) {
+                        echo "<p>暂无PDF目录</p>";
+                    }
+                    ?>
+                </div>
 
-            <input type="submit" name="submit" value="上传文件" class="submit-btn">
-        </form>
+                <div class="file-input">
+                    <label for="file">选择文件 (支持 .md, .txt, .pdf, 最大10MB):</label><br>
+                    <input type="file" name="file" id="file" accept=".md,.txt,.pdf" required>
+                </div>
+
+                <input type="submit" name="submit" value="上传文件" class="submit-btn">
+            </form>
+        </div>
     </div>
 </body>
 </html>
