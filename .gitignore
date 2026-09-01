@@ -1,0 +1,10 @@
+# 忽略包含真实数据库密码的配置文件
+config.php
+
+# 日志文件
+*.log
+error_log
+
+# 系统文件
+.DS_Store
+Thumbs.db

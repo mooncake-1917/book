@@ -1,106 +1,99 @@
 <?php
-// 启动会话
-session_start();
+declare(strict_types=1);
 
-// 检查用户是否已登录
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
+require __DIR__ . '/TOOLS/security.php';
+require_login();
 
-// 处理上传逻辑
 $message = '';
 $upload_success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
-    $selected_dir = isset($_POST['dir']) ? $_POST['dir'] : '';
-    $file = isset($_FILES['file']) ? $_FILES['file'] : null;
-    
-    // 验证输入
-    if (empty($selected_dir)) {
+    verify_csrf();
+
+    $selected_dir = (string)($_POST['dir'] ?? '');
+    $file = $_FILES['file'] ?? null;
+
+    if ($selected_dir === '' || strlen($selected_dir) < 2) {
         $message = '请选择上传目录';
-    } elseif (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+    } elseif (!$file || ((int)$file['error']) !== UPLOAD_ERR_OK) {
         $message = '请选择有效的文件';
     } else {
-        // 提取目录类型和名称
-        $dir_type = substr($selected_dir, 0, 1);
+        $dir_type = $selected_dir[0];
         $dir_name = substr($selected_dir, 1);
-        
-        // 数据库配置 - 使用与login.php相同的配置
-        $localhost = 'localhost';
-        $db_user = 'user';
-        $db_pass = '19207572133';
-        $db_name = 'book';
-        
-        $mysqli = new mysqli($localhost, $db_user, $db_pass, $db_name);
-        if ($mysqli->connect_errno) {
-            $message = '数据库连接失败: ' . $mysqli->connect_error;
+
+        $allowed_types = ['md', 'txt', 'pdf'];
+        $max_size = 10 * 1024 * 1024;
+
+        $file_extension = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($file_extension, $allowed_types, true)) {
+            $message = '只允许上传 .md, .txt, .pdf 格式的文件';
+        } elseif ((int)$file['size'] > $max_size) {
+            $message = '文件大小不能超过10MB';
+        } elseif (($dir_type !== '0' && $dir_type !== '1') || !valid_segment($dir_name)) {
+            $message = '无效的目录';
         } else {
-            // 获取当前登录用户信息
-            $user_id = $_SESSION['user_id'];
-            $username = $_SESSION['username'];
-            
-            // 验证文件类型和大小
-            $allowed_types = ['md', 'txt', 'pdf'];
-            $max_size = 10 * 1024 * 1024; // 10MB
-            
-            $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            if (!in_array($file_extension, $allowed_types)) {
-                $message = '只允许上传 .md, .txt, .pdf 格式的文件';
-            } elseif ($file['size'] > $max_size) {
-                $message = '文件大小不能超过10MB';
+            $base = ($dir_type === '0') ? 'MARKDOWN' : 'PDFS';
+            $dirReal = secure_realpath(__DIR__ . '/' . $base, $dir_name);
+
+            if ($dirReal === null || !is_dir($dirReal)) {
+                $message = '目标目录不存在';
             } else {
-                // 安全处理文件名
-                $safe_filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file['name']);
-                $safe_filename = time() . '_' . $safe_filename; // 添加时间戳避免重名
-                
-                // 确定目标目录
-                if ($dir_type == '0') {
-                    $target_dir = "./MARKDOWN/" . $dir_name . "/";
-                    $upload_type = 0;
-                } elseif ($dir_type == '1') {
-                    $target_dir = "./PDFS/" . $dir_name . "/";
-                    $upload_type = 1;
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mime = (string)$finfo->file($file['tmp_name']);
+
+                $mimeOk = false;
+                if ($file_extension === 'pdf') {
+                    $mimeOk = ($mime === 'application/pdf');
                 } else {
-                    $message = '无效的目录类型';
-                    $mysqli->close();
-                    exit;
+                    $mimeOk = (strpos($mime, 'text/') === 0 || in_array($mime, ['application/x-empty', 'inode/x-empty'], true));
                 }
-                
-                // 确保目标目录存在
-                if (!is_dir($target_dir)) {
-                    mkdir($target_dir, 0755, true);
-                }
-                
-                $target_path = $target_dir . $safe_filename;
-                
-                // 使用预处理语句记录上传信息
-                $stmt = $mysqli->prepare('INSERT INTO uploads (user_id, username, directory, filename, original_filename, upload_time, file_type) VALUES (?, ?, ?, ?, ?, NOW(), ?)');
-                if ($stmt) {
-                    $stmt->bind_param('issssi', $user_id, $username, $dir_name, $safe_filename, $file['name'], $upload_type);
-                    
-                    if ($stmt->execute()) {
-                        // 移动上传的文件
-                        if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                            $message = '文件上传成功！';
-                            $upload_success = true;
-                            
-                            // 设置文件权限
-                            chmod($target_path, 0644);
-                        } else {
-                            $message = '文件移动失败，请检查目录权限';
-                            // 删除数据库记录
-                            $mysqli->query("DELETE FROM uploads WHERE filename = '$safe_filename'");
-                        }
-                    } else {
-                        $message = '数据库记录失败: ' . $stmt->error;
+
+                if (!$mimeOk) {
+                    $message = '文件内容与扩展名不匹配，已拒绝上传';
+                } else {
+                    $original = (string)$file['name'];
+                    $safe_filename = preg_replace('/[^\p{L}\p{N}._-]/u', '_', $original);
+                    if ($safe_filename === null || $safe_filename === '' || $safe_filename === '.' || $safe_filename === '..') {
+                        $safe_filename = 'file';
                     }
-                    $stmt->close();
-                } else {
-                    $message = '数据库准备失败: ' . $mysqli->error;
+                    if (strtolower(pathinfo($safe_filename, PATHINFO_EXTENSION)) !== $file_extension) {
+                        $safe_filename .= '.' . $file_extension;
+                    }
+                    $safe_filename = time() . '_' . $safe_filename;
+
+                    $target_path = $dirReal . DIRECTORY_SEPARATOR . $safe_filename;
+
+                    $mysqli = db_connect();
+                    $upload_type = ($dir_type === '0') ? 0 : 1;
+                    $stmt = $mysqli->prepare('INSERT INTO uploads (user_id, username, directory, filename, original_filename, upload_time, file_type) VALUES (?, ?, ?, ?, ?, NOW(), ?)');
+                    if ($stmt) {
+                        $stmt->bind_param('issssi', $_SESSION['user_id'], $_SESSION['username'], $dir_name, $safe_filename, $original, $upload_type);
+
+                        if ($stmt->execute()) {
+                            if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                                chmod($target_path, 0644);
+                                $message = '文件上传成功！';
+                                $upload_success = true;
+                            } else {
+                                $message = '文件移动失败，请检查目录权限';
+                                $del = $mysqli->prepare('DELETE FROM uploads WHERE filename = ?');
+                                if ($del) {
+                                    $del->bind_param('s', $safe_filename);
+                                    $del->execute();
+                                    $del->close();
+                                }
+                            }
+                        } else {
+                            $message = '数据库记录失败，请稍后重试';
+                        }
+                        $stmt->close();
+                    } else {
+                        $message = '数据库准备失败，请稍后重试';
+                    }
+                    $mysqli->close();
                 }
             }
-            $mysqli->close();
         }
     }
 }
@@ -110,38 +103,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>文件上传 - <?php echo htmlspecialchars($_SESSION['username']); ?></title>
+    <title>文件上传 - <?php echo e($_SESSION['username'] ?? ''); ?></title>
     <style>
-        /* 基础样式保持不变，添加移动端优化 */
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
                 margin: 10px;
             }
-            
+
             .directory-section {
                 padding: 10px;
                 margin: 10px 0;
             }
-            
+
             .file-input input[type="file"] {
                 width: 100%;
                 padding: 10px;
             }
-            
+
             .submit-btn {
                 width: 100%;
                 padding: 15px;
                 font-size: 16px;
             }
-            
+
             .user-info {
                 padding: 8px;
                 font-size: 14px;
             }
         }
-        
-        /* 平板优化 */
+
         @media (min-width: 769px) and (max-width: 1024px) {
             .container {
                 max-width: 600px;
@@ -153,68 +144,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 <body>
     <div class="container">
         <div class="user-info">
-            当前用户: <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong>
+            当前用户: <strong><?php echo e($_SESSION['username'] ?? ''); ?></strong>
             <a href="logout.php" class="logout">退出登录</a>
         </div>
-        
+
         <h2>文件上传</h2>
-        
+
         <?php if ($message !== ''): ?>
             <div class="message <?php echo $upload_success ? 'success' : 'error'; ?>">
-                <?php echo htmlspecialchars($message); ?>
+                <?php echo e($message); ?>
             </div>
         <?php endif; ?>
-        
+
         <form action="upload.php" method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
             <div class="directory-section">
                 <h3>Markdown目录:</h3>
                 <?php
-                $md_tree = dir("./MARKDOWN");
-                $md_dirs = array();
-                while (($md_dir = $md_tree->read()) !== false) {
-                    if ($md_dir != "." && $md_dir != "..") {
-                        $md_dirs[] = $md_dir;
+                $md_base = __DIR__ . '/MARKDOWN';
+                $md_dirs = [];
+                if (is_dir($md_base)) {
+                    foreach (scandir($md_base) as $d) {
+                        if ($d === '.' || $d === '..' || !is_dir($md_base . DIRECTORY_SEPARATOR . $d)) continue;
+                        $md_dirs[] = $d;
                     }
                 }
-                $md_tree->close();
-                sort($md_dirs);
-                
-                foreach ($md_dirs as $dir) {
-                    echo "<label><input type='radio' name='dir' value='0$dir' required> $dir</label><br>";
+                usort($md_dirs, 'strnatcasecmp');
+                foreach ($md_dirs as $d) {
+                    echo "<label><input type='radio' name='dir' value='0" . e($d) . "' required> " . e($d) . "</label><br>";
                 }
                 if (empty($md_dirs)) {
                     echo "<p>暂无Markdown目录</p>";
                 }
                 ?>
             </div>
-            
+
             <div class="directory-section">
                 <h3>PDF目录:</h3>
                 <?php
-                $pdf_tree = dir("./PDFS");
-                $pdf_dirs = array();
-                while (($pdf_dir = $pdf_tree->read()) !== false) {
-                    if ($pdf_dir != "." && $pdf_dir != "..") {
-                        $pdf_dirs[] = $pdf_dir;
+                $pdf_base = __DIR__ . '/PDFS';
+                $pdf_dirs = [];
+                if (is_dir($pdf_base)) {
+                    foreach (scandir($pdf_base) as $d) {
+                        if ($d === '.' || $d === '..' || !is_dir($pdf_base . DIRECTORY_SEPARATOR . $d)) continue;
+                        $pdf_dirs[] = $d;
                     }
                 }
-                $pdf_tree->close();
-                sort($pdf_dirs);
-                
-                foreach ($pdf_dirs as $dir) {
-                    echo "<label><input type='radio' name='dir' value='1$dir' required> $dir</label><br>";
+                usort($pdf_dirs, 'strnatcasecmp');
+                foreach ($pdf_dirs as $d) {
+                    echo "<label><input type='radio' name='dir' value='1" . e($d) . "' required> " . e($d) . "</label><br>";
                 }
                 if (empty($pdf_dirs)) {
                     echo "<p>暂无PDF目录</p>";
                 }
                 ?>
             </div>
-            
+
             <div class="file-input">
                 <label for="file">选择文件 (支持 .md, .txt, .pdf, 最大10MB):</label><br>
                 <input type="file" name="file" id="file" accept=".md,.txt,.pdf" required>
             </div>
-            
+
             <input type="submit" name="submit" value="上传文件" class="submit-btn">
         </form>
     </div>
