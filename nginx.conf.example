@@ -11,13 +11,30 @@
 #         unix:/run/php-fpm/www.sock
 #         127.0.0.1:9000
 #       请按实际环境修改。
+#
+# -----------------------------------------------------------------
+# Termux / Android（如 wstoolbox）环境注意事项：
+#
+# 1) 这类环境没有 Debian/Ubuntu 的 /etc/nginx/snippets/fastcgi-php.conf，
+#    因此本配置统一使用 include fastcgi_params; 并手动设置 SCRIPT_FILENAME，
+#    不依赖任何 snippets。
+#
+# 2) 需将下面示例中的 root 改为项目实际目录，例如：
+#      root /data/data/com.xiaojiangi.wstoolbox/extensions/nginx/html/book;
+#
+# 3) PHP-FPM 监听地址需按实际改，例如 wstoolbox 常见为：
+#      fastcgi_pass 127.0.0.1:9000;
+#    （也可能是 unix socket，用 php-fpm 配置确认）
+#
+# 4) 重载命令：
+#      nginx -t && nginx -s reload
 # =============================================================
 
 server {
     listen 80;
     server_name localhost;
 
-    root /data/data/com.xiaojiangi.wstoolbox/extensions/nginx/html/book;
+    root /var/www/book;
     index index.php;
 
     # 上传大小限制（与 PHP upload_max_filesize 保持一致）
