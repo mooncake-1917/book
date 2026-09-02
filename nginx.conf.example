@@ -1,15 +1,23 @@
 # =============================================================
 # book 项目 Nginx 配置示例
-# 适用：Nginx + PHP-FPM
-# 使用：将 server {} 内容按需合并到你的站点配置，替换域名、
-#       root 和 PHP-FPM socket 后重载 nginx。
+# 适用：Nginx + PHP-FPM（通用写法，不依赖发行版的 snippets）
+# 兼容 Termux / Android（如 wstoolbox）等无 /etc/nginx 目录的环境
+#
+# 使用：将 server {} 内容合并到你的站点配置，替换 server_name、
+#       root 与 PHP-FPM 监听地址后重载 nginx。
+#       PHP-FPM 监听地址可能是：
+#         unix:/var/run/php/php-fpm.sock
+#         unix:/var/run/php/php8.1-fpm.sock
+#         unix:/run/php-fpm/www.sock
+#         127.0.0.1:9000
+#       请按实际环境修改。
 # =============================================================
 
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name localhost;
 
-    root /var/www/book;
+    root /data/data/com.xiaojiangi.wstoolbox/extensions/nginx/html/book;
     index index.php;
 
     # 上传大小限制（与 PHP upload_max_filesize 保持一致）
@@ -33,9 +41,9 @@ server {
     location ^~ /PDFS/     { deny all; }
 
     # ---------- TOOLS：仅允许 AJAX 接口直接访问 ----------
-    location = /TOOLS/GET_ITEMS.php  { include snippets/fastcgi-php.conf; fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; }
-    location = /TOOLS/GET_SEARCH.php { include snippets/fastcgi-php.conf; fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; }
-    location = /TOOLS/GET_MD.php     { include snippets/fastcgi-php.conf; fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; }
+    location = /TOOLS/GET_ITEMS.php  { include fastcgi_params; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; fastcgi_pass 127.0.0.1:9000; }
+    location = /TOOLS/GET_SEARCH.php { include fastcgi_params; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; fastcgi_pass 127.0.0.1:9000; }
+    location = /TOOLS/GET_MD.php     { include fastcgi_params; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; fastcgi_pass 127.0.0.1:9000; }
     location ^~ /TOOLS/ { deny all; }
 
     # ---------- 路由 ----------
@@ -54,17 +62,16 @@ server {
         try_files $uri /RELESEAS/search.php?$query_string;
     }
 
-    # PDF 下载代理（可选；项目当前使用 /download.php?dir=&file=）
+    # PDF 下载代理（可选）
     location ~ ^/download/([^/]+)/([^/]+)/?$ {
         rewrite ^/download/([^/]+)/([^/]+)/?$ /download.php?dir=$1&file=$2 last;
     }
 
-    # ---------- PHP ----------
-    # 注意：snippets/fastcgi-php.conf 为 Debian/Ubuntu 路径；
-    # 其他发行版可改为 include fastcgi_params; 并手动设置 SCRIPT_FILENAME。
+    # ---------- PHP（通用写法，不依赖 snippets） ----------
     location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 按实际 PHP-FPM socket 修改
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass 127.0.0.1:9000;   # 按实际 PHP-FPM 监听地址修改
     }
 
     # ---------- 静态资源缓存 ----------
@@ -75,7 +82,6 @@ server {
     }
 
     # ---------- 美化 Markdown URL：/目录名/文件名 -> index.php ----------
-    # 放在其他规则之后，避免吞掉 .php / 静态资源请求
     location ~ ^/[^/]+/[^/]+/?$ {
         try_files $uri $uri/ /index.php?$query_string;
     }

@@ -19,7 +19,7 @@
 
 ```text
 book/
-├── nginx.conf.example     # Nginx 配置示例
+├── nginx.conf.example     # Nginx 配置示例（通用写法）
 ├── .htaccess              # Apache 配置（使用 Nginx 时可忽略）
 ├── config.sample.php      # 配置示例（复制为 config.php）
 ├── database.sql           # 全新安装初始化脚本（v2）
@@ -117,13 +117,18 @@ book/
 
 6. **配置 Web 服务器**
 
-   **Nginx（推荐）**：参考 `nginx.conf.example`，替换域名、`root` 与 PHP-FPM socket 后，重载 Nginx：
+   **Nginx（推荐）**：参考 `nginx.conf.example`，替换 `server_name`、`root` 与 PHP-FPM 监听地址后，重载 Nginx：
 
    ```bash
-   nginx -t && systemctl reload nginx
+   nginx -t && nginx -s reload
    ```
 
-   > 注意：`.htaccess` 是 Apache 配置，在 Nginx 下不生效，所有安全规则与路由都已写在 `nginx.conf.example` 中。
+   > 常见的 PHP-FPM 监听地址：
+   > - `127.0.0.1:9000`
+   > - `unix:/var/run/php/php-fpm.sock`
+   > - `unix:/run/php-fpm/www.sock`
+   >
+   > 本配置采用通用的 `include fastcgi_params;` 写法，不依赖发行版 `snippets`，兼容 Termux / Android 等环境。
 
    **Apache**：确保站点允许读取 `.htaccess`（`AllowOverride All`），仓库内已提供对应配置。
 
